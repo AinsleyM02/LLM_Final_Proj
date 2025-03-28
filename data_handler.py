@@ -21,9 +21,9 @@ from const import PATH_TO_DATA, PATH_TO_CLEANED_DATA
 
 # External imports
 import fitz
-from pptx import Presentation
-from docx import Document
+import docx2txt
 import lxml.etree as et
+from pptx import Presentation
 
 
 class DataHandler:
@@ -73,6 +73,8 @@ class DataHandler:
                 title, text = self.__clean_txt(file)
             elif file.split(".")[-1] in ["docx", "DOCX"]:
                 title, text = self.__clean_docx(file)
+            elif file.split(".")[-1] in ["pptx", "PPTX"]:
+                title, text = self.__clean_pptx(file)
             elif file.split(".")[-1] == "nxml":
                 title, text = self.__clean_nxml(file)
             else:
@@ -117,6 +119,8 @@ class DataHandler:
         - title: str, title of the file
         - text: str, extracted text from the file
         """
+        # Get actual file name not the full path
+
         print(f"Cleaning {file}...")
         # Ensure right file type
         if file.split(".")[-1] not in ["pdf", "PDF"]:
@@ -127,7 +131,8 @@ class DataHandler:
         for page in pdf:
             text += page.get_text()
         pdf.close()
-        title = file.split("/")[-1].split(".")[0]
+        # Split the file path to get the title
+        title = Path(file).stem
         return title, text
 
     def __clean_txt(self, file: str) -> Tuple[str, str]:
@@ -148,7 +153,7 @@ class DataHandler:
         # Open the TXT file
         with open(file, "r") as f:
             text = f.read()
-        title = file.split("/")[-1].split(".")[0]
+        title = Path(file).stem
         return title, text
 
     def __clean_docx(self, file: str) -> Tuple[str, str]:
@@ -167,11 +172,33 @@ class DataHandler:
         if file.split(".")[-1] not in ["docx", "DOCX"]:
             raise ValueError(f"File {file} is not a DOCX file. Cannot clean as DOCX.")
         # Open the DOCX file
-        doc = Document(file)
-        text = ""
-        for para in doc.paragraphs:
-            text += para.text
+        text = docx2txt.process(file)
         title = file.split("/")[-1].split(".")[0]
+        return title, text
+
+    def __clean_pptx(self, file: str) -> Tuple[str, str]:
+        """
+        Cleans a PPTX file.
+
+        Parameters:
+        - file: str, path to the file
+
+        Returns:
+        - title: str, title of the file
+        - text: str, extracted text from the file
+        """
+        print(f"Cleaning {file}...")
+        # Ensure right file type
+        if file.split(".")[-1] not in ["pptx", "PPTX"]:
+            raise ValueError(f"File {file} is not a PPTX file. Cannot clean as PPTX.")
+        # Open the PPTX file
+        ppt = Presentation(file)
+        text = ""
+        for slide in ppt.slides:
+            for shape in slide.shapes:
+                if hasattr(shape, "text"):
+                    text += shape.text
+        title = Path(file).stem
         return title, text
 
     def __clean_nxml(self, file):

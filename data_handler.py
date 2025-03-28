@@ -132,16 +132,30 @@ class DataHandler:
         """
 
         # Sanitize the title by replacing path separators and invalid filename characters
-        invalid_chars = '<>:"/\\|?*,'
+        invalid_chars = '<>:"/\\|?*,.\r\n'
         safe_title = "".join(c for c in title if c not in invalid_chars)
-        safe_title = safe_title.strip()  # Remove leading/trailing whitespace
+
+        # Remove BOM characters (if any)
+        safe_title = safe_title.replace("\ufeff", "").replace("\ufffd", "")
+
+        # Ensure safe title is less than 150 characters otherwise there is a risk of exceeding the limit
+        safe_title = safe_title[:150]
+
+        # Ensure that the title is not empty
+        if not safe_title:
+            safe_title = "Untitled"
+
+        # Clean up any leading or trailing spaces and ensure the title is safe
+        safe_title = safe_title.strip()
+
+        # Make sure the path exists
+        path.mkdir(parents=True, exist_ok=True)
+
+        # Define the full path to save the cleaned data
+        file_path = path / Path(safe_title + ".txt")
 
         # Save the cleaned data
-        with open(
-            f"{self.clean_data_path / Path(safe_title + '.txt')}",
-            "w",
-            encoding="utf-8",
-        ) as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(text)
 
     def vectorize_data(self) -> None:
@@ -231,7 +245,7 @@ class DataHandler:
 
         if not toc:
             print("No TOC detected. Falling back to font-size based sectioning.")
-            return self.__extract_pdf_by_font_size(title)  # Fallback method if no TOC
+            return self.__extract_pdf_by_font_size(file)  # Fallback method if no TOC
 
         # Step 2: Filter TOC to only include sections up to level 2
         toc = [entry for entry in toc if entry[0] <= 2]  # Limit to level 1 and 2
@@ -327,7 +341,9 @@ class DataHandler:
 
         # Append last section
         if section_text:
-            sections_list.append((f"{title}: {current_section}", section_text))
+            sections_list.append(
+                (f"{title}: {current_section}", "\n".join(section_text).strip())
+            )
 
         pdf.close()
         return sections_list

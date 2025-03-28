@@ -12,6 +12,7 @@ This should:
 """
 
 # Standard imports
+import argparse
 from typing import Dict
 from pathlib import Path
 
@@ -19,12 +20,48 @@ from pathlib import Path
 from const import PATH_TO_DATA
 from data_handler import DataHandler
 
+# Create an argument parser
+parser = argparse.ArgumentParser(
+    description="Run pipeline with command-line parameters."
+)
+parser.add_argument(
+    "--clean_data",
+    type=lambda x: x.lower() == "true",
+    default=True,
+    help="Whether to setup data (default: True)",
+)
+parser.add_argument(
+    "--vectorize_data",
+    type=lambda x: x.lower() == "true",
+    default=True,
+    help="Whether to vectorize data (default: True)",
+)
+args = parser.parse_args()
 
-def run_LLM():
+# See if None
+if args is None:
+    clean_data = True
+    vectorize_data = True
+
+# Use the argument
+if args.clean_data:
+    clean_data = True
+else:
+    clean_data = False
+
+if args.vectorize_data:
+    vectorize_data = True
+else:
+    vectorize_data = False
+
+
+def run_LLM(clean_data: bool = True, vectorize_data: bool = True):
     """
     Function that runs the LLM.
     """
-    title_vector_dict = __traverse_data_pipeline(Path(PATH_TO_DATA))
+    title_vector_dict = __traverse_data_pipeline(
+        Path(PATH_TO_DATA), clean_data=clean_data, vectorize_data=vectorize_data
+    )
 
     # Set up the local vector DB and add data to it
     vector_db = __set_up_local_vector_db(title_vector_dict)
@@ -34,7 +71,11 @@ def run_LLM():
     __run_LLM()  # Ideally, we take input and output in the terminal.
 
 
-def __traverse_data_pipeline(data_path: Path = Path(PATH_TO_DATA)) -> Dict[str, str]:
+def __traverse_data_pipeline(
+    data_path: Path = Path(PATH_TO_DATA),
+    clean_data: bool = True,
+    vectorize_data: bool = True,
+) -> Dict[str, str]:
     """
     Function that traverses the data pipeline.
 
@@ -46,19 +87,30 @@ def __traverse_data_pipeline(data_path: Path = Path(PATH_TO_DATA)) -> Dict[str, 
     """
     # Load the data
     data_handler = DataHandler(data_path=data_path)
-    data_handler.load_data()
 
-    # Clean the data
-    data_handler.clean_data()
+    # If we need to clean the data and save it then let's do that
+    if clean_data:
+        data_handler.load_data()
+        data_handler.clean_data()
 
-    # Extract the text from the data and vectorize
-    return data_handler.g()
+    # If we need to vectorize the data then let's do that
+    if vectorize_data:
+        title_vector_dict = data_handler.vectorize_data()
+    else:
+        title_vector_dict = data_handler.load_vectorized_data()
+
+    # Now we can vectorize the data
+    title_vector_dict = data_handler.vectorize_data()
+
+    return title_vector_dict
 
 
-def __set_up_local_vector_db():
+def __set_up_local_vector_db(title_vector_dict: Dict[str, str]):
     """
     Function that sets up a local vector DB if it doesn't already exist.
     """
+    print("Setting up local vector DB...")
+    print(title_vector_dict)
     pass
 
 
@@ -76,4 +128,4 @@ def __run_LLM():
     pass
 
 
-run_LLM()
+run_LLM(clean_data=clean_data)

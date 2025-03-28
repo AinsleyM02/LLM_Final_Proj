@@ -5,19 +5,21 @@ The data that will be accepeted in the following formats:
 - PDF
 - DOCX
 - TXT
+- PPTX
 - NXML (specifically from statpearls)
 
-Other formats will be ignored. Once cleaned the data will be extracted to a unified format (PDF) the vectorized to be loaded into a vector DB.
+Other formats will be ignored. Once cleaned the data will be extracted to a unified format (txt) the vectorized to be loaded into a vector DB.
 """
 
 # Standard imports
 import os
+import re
 from typing import Tuple
 from pathlib import Path
 
 # Internal imports
 from utils import embed_text
-from const import PATH_TO_DATA, PATH_TO_CLEANED_DATA
+from const import PATH_TO_DATA, PATH_TO_CLEANED_DATA, PATH_TO_VECTORIZED_DATA
 
 # External imports
 import fitz
@@ -44,9 +46,11 @@ class DataHandler:
         self,
         data_path: Path = Path(PATH_TO_DATA),
         clean_data_path: Path = Path(PATH_TO_CLEANED_DATA),
+        vectorized_data_path: Path = Path(PATH_TO_VECTORIZED_DATA),
     ) -> None:
         self.data_path = data_path
         self.clean_data_path = clean_data_path
+        self.vectorized_data_path = vectorized_data_path
         self.data = []
         self.file_types = ["pdf", "docx", "txt", "pptx", "nxml"]
         self.data_dict = {}  # Dictionary of titles and extracted content
@@ -105,8 +109,53 @@ class DataHandler:
         """
         Function that vectorizes the data.
         """
+        if not self.data_dict:
+            # Get data from the cleaned data folder
+            for root, dirs, files in os.walk(self.clean_data_path):
+                for file in files:
+                    with open(os.path.join(root, file), "r", encoding="utf-8") as f:
+                        # Print file name
+                        print(f"Reading {file}...")
+                        text = f.read()
+                    title = Path(file).stem
+                    self.data_dict[title] = text
+
+        if not self.data_dict:
+            raise ValueError("No data to vectorize.")
+
         for title, text in self.data_dict.items():
+            if title == ".gitkeep":
+                continue
+            print(f"Vectorizing {title}...")
             self.vectorized_data[title] = embed_text(text)
+
+        # Save the vectorized data
+        with open(
+            f"{self.vectorized_data_path / Path('vectorized_data.txt')}",
+            "w",
+            encoding="utf-8",
+        ) as f:
+            for title, vector in self.vectorized_data.items():
+                f.write(f"{title}: {vector}\n")
+
+        return self.vectorized_data
+
+    def load_vectorized_data(self) -> dict:
+        """
+        Function that loads the vectorized data.
+        """
+        with open(
+            f"{self.vectorized_data_path / Path('vectorized_data.txt')}",
+            "r",
+            encoding="utf-8",
+        ) as f:
+            lines = f.readlines()
+
+        for line in lines:
+            title, vector = line.split(": ")
+            self.vectorized_data[title] = vector
+
+        return self.vectorized_data
 
     def __clean_pdf(self, file: str) -> Tuple[str, str]:
         """
@@ -119,19 +168,26 @@ class DataHandler:
         - title: str, title of the file
         - text: str, extracted text from the file
         """
-        # Get actual file name not the full path
-
         print(f"Cleaning {file}...")
-        # Ensure right file type
-        if file.split(".")[-1] not in ["pdf", "PDF"]:
+
+        # Ensure correct file type
+        if file.split(".")[-1].lower() != "pdf":
             raise ValueError(f"File {file} is not a PDF file. Cannot clean as PDF.")
-        # Open the PDF file
+
+        # Open PDF file
         pdf = fitz.open(file)
         text = ""
         for page in pdf:
-            text += page.get_text()
+            text += page.get_text("text") + "\n\n"  # Keep paragraph breaks
+
         pdf.close()
-        # Split the file path to get the title
+
+        # Fix hyphenated words (e.g., "micro-\nscope" -> "microscope")
+        text = re.sub(r"(\w+)-\n(\w+)", r"\1\2", text)
+
+        # Remove unnecessary line breaks within paragraphs
+        text = re.sub(r"(?<!\n)\n(?!\n)", " ", text)
+
         title = Path(file).stem
         return title, text
 

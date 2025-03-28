@@ -23,6 +23,18 @@ The integration of large language models (LLMs) in medical education remains con
 
 - Run pipeline with the following
 
-```
-python pipline.py
-```
+  ```
+  python pipline.py
+  ```
+
+  - Note the above will run with cleaning all the data. Once you do this once, you probably don't want to do that again. So you can do this:
+
+  ```
+  python pipeline.py --clean_data=False
+  ```
+
+  - The same goes for vectorizing you can avoid doing that like this (if you've done it already it will be saved to the vectorized_data folder in a txt file)
+
+  ```
+  python pipeline.py --clean_data=False --vectorize_data=True
+  ```

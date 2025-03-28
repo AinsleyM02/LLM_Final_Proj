@@ -186,7 +186,7 @@ class DataHandler:
         - title: str, title of the file
         - text: str, extracted text from the file
         """
-        # print(f"Cleaning {file}...")
+        print(f"Cleaning {file}...")
 
         # Ensure correct file type
         if file.split(".")[-1].lower() != "pdf":

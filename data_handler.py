@@ -20,7 +20,9 @@ from utils import embed_text
 from const import PATH_TO_DATA, PATH_TO_CLEANED_DATA
 
 # External imports
-import textract
+import fitz
+from pptx import Presentation
+from docx import Document
 import lxml.etree as et
 
 
@@ -65,10 +67,19 @@ class DataHandler:
 
     def clean_data(self) -> None:
         for file in self.data:
-            if file.split(".")[-1] in ["pdf", "PDF", "docx", "DOCX", "pptx", "PPTX"]:
-                title, text = self.__clean_textract(file)
+            if file.split(".")[-1] in ["pdf", "PDF"]:
+                title, text = self.__clean_pdf(file)
+            elif file.split(".")[-1] in ["txt", "TXT"]:
+                title, text = self.__clean_txt(file)
+            elif file.split(".")[-1] in ["docx", "DOCX"]:
+                title, text = self.__clean_docx(file)
             elif file.split(".")[-1] == "nxml":
                 title, text = self.__clean_nxml(file)
+            else:
+                print(
+                    f"File {file} is not in the accepted file types. Should have been deleted... Skipping..."
+                )
+                continue
 
             if title is None or text is None:
                 print(f"Error cleaning {file}. Skipping...")
@@ -95,9 +106,9 @@ class DataHandler:
         for title, text in self.data_dict.items():
             self.vectorized_data[title] = embed_text(text)
 
-    def __clean_textract(self, file) -> Tuple[str, str]:
+    def __clean_pdf(self, file: str) -> Tuple[str, str]:
         """
-        Function that cleans a PDF, DOCX, or PPTX file using textract.
+        Cleans a PDF file.
 
         Parameters:
         - file: str, path to the file
@@ -106,11 +117,60 @@ class DataHandler:
         - title: str, title of the file
         - text: str, extracted text from the file
         """
-        if file.split(".")[-1] not in ["pdf", "PDF", "docx", "DOCX", "pptx", "PPTX"]:
-            raise ValueError(
-                f"File {file} is not a PDF, DOCX, or PPTX file. Cannot clean using textract."
-            )
-        text = textract.process(file).decode("utf-8")
+        print(f"Cleaning {file}...")
+        # Ensure right file type
+        if file.split(".")[-1] not in ["pdf", "PDF"]:
+            raise ValueError(f"File {file} is not a PDF file. Cannot clean as PDF.")
+        # Open the PDF file
+        pdf = fitz.open(file)
+        text = ""
+        for page in pdf:
+            text += page.get_text()
+        pdf.close()
+        title = file.split("/")[-1].split(".")[0]
+        return title, text
+
+    def __clean_txt(self, file: str) -> Tuple[str, str]:
+        """
+        Cleans a TXT file.
+
+        Parameters:
+        - file: str, path to the file
+
+        Returns:
+        - title: str, title of the file
+        - text: str, extracted text from the file
+        """
+        print(f"Cleaning {file}...")
+        # Ensure right file type
+        if file.split(".")[-1] not in ["txt", "TXT"]:
+            raise ValueError(f"File {file} is not a TXT file. Cannot clean as TXT.")
+        # Open the TXT file
+        with open(file, "r") as f:
+            text = f.read()
+        title = file.split("/")[-1].split(".")[0]
+        return title, text
+
+    def __clean_docx(self, file: str) -> Tuple[str, str]:
+        """
+        Cleans a DOCX file.
+
+        Parameters:
+        - file: str, path to the file
+
+        Returns:
+        - title: str, title of the file
+        - text: str, extracted text from the file
+        """
+        print(f"Cleaning {file}...")
+        # Ensure right file type
+        if file.split(".")[-1] not in ["docx", "DOCX"]:
+            raise ValueError(f"File {file} is not a DOCX file. Cannot clean as DOCX.")
+        # Open the DOCX file
+        doc = Document(file)
+        text = ""
+        for para in doc.paragraphs:
+            text += para.text
         title = file.split("/")[-1].split(".")[0]
         return title, text
 

@@ -16,9 +16,10 @@ The integration of large language models (LLMs) in medical education remains con
 
 - Install dependencies
 
-```
-pip install -r requirements.txt
-```
+  - Through pip
+    ```
+    pip install -r requirements.txt
+    ```
 
 - Run pipeline with the following
 

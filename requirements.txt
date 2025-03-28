@@ -1,4 +1,6 @@
 sentence-transformers # This is used to embed the text data
-textract==1.6.3 # This is used to extract the text from the pdf, docx, pptx, txt files
+PyMuPDF # This is used to parse the pdf files
+docx2txt # This is used to parse the docx files
+python-pptx # This is used to parse the pptx files
 numpy # We always import numpy lol
 lxml # This is used to parse the nxml files

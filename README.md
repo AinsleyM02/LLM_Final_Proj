@@ -16,7 +16,7 @@ Please make sure you are working on a branch then merging changes when they are 
 
 - Then pull the code into your local repo and change into the remote main branch. Verify that you have `vectorized_data/vectorized_data.json` and it is not an empty file (this verifies that GitLFS works).
 
-- Place raw data within the "data" folder.
+- **Place raw data within the "data" folder.**
 
 - Install dependencies
 

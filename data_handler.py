@@ -71,8 +71,17 @@ class DataHandler:
                 title, text = self.__clean_nxml(file)
             self.data_dict[title] = text
 
+            # Sanitize the title by replacing path separators and invalid filename characters
+            invalid_chars = '<>:"/\\|?*'
+            safe_title = "".join(c for c in title if c not in invalid_chars)
+            safe_title = safe_title.strip()  # Remove leading/trailing whitespace
+
             # Save the cleaned data
-            with open(f"{self.clean_data_path + title}.txt", "w") as f:
+            with open(
+                f"{self.clean_data_path / Path(safe_title + '.txt')}",
+                "w",
+                encoding="utf-8",
+            ) as f:
                 f.write(text)
 
     def vectorize_data(self) -> None:
@@ -112,6 +121,7 @@ class DataHandler:
         - title: str, title of the file
         - text: str, extracted text from the file
         """
+        print(f"Cleaning {file}...")
         # Ensure right file type
         if file.split(".")[-1] != "nxml":
             raise ValueError(f"File {file} is not an nxml file. Cannot clean as nxml.")
@@ -121,15 +131,16 @@ class DataHandler:
         root = tree.getroot()
 
         # Extract the title using title-group tag
-        title = root.find(".//title-group/article-title").text
+        title = root.find(".//title-group/title").text
+
+        print(f"Topic {title}...")
 
         # Extract tags with the sec-type as long as it does not have the value of "Continuing Education Activity"
         text = ""
         for sec in root.findall(".//sec"):
-            if (
-                sec.find(".//sec-type") is not None
-                and sec.find(".//sec-type").text != "Continuing Education Activity"
-            ):
+            sec_type = sec.get("sec-type")  # Access sec-type as an attribute of <sec>
+
+            if sec_type is not None and sec_type != "Continuing Education Activity":
                 for element in sec:  # Iterate over child elements in order
                     if element.tag == "title" and element.text:
                         text += element.text + "\n"

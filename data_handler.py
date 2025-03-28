@@ -25,8 +25,9 @@ from const import PATH_TO_DATA, PATH_TO_CLEANED_DATA, PATH_TO_VECTORIZED_DATA
 # External imports
 import fitz
 import docx2txt
-import lxml.etree as et
+import numpy as np
 from tqdm import tqdm
+import lxml.etree as et
 from pptx import Presentation
 
 
@@ -155,7 +156,7 @@ class DataHandler:
             if title == ".gitkeep":
                 continue
             # print(f"Vectorizing {title}...")
-            self.vectorized_data[title] = embed_text(text)
+            self.vectorized_data[title] = embed_text(text).tolist()
 
         # Save the vectorized data in json format
         with open(
@@ -165,18 +166,26 @@ class DataHandler:
         ) as f:
             json.dump(self.vectorized_data, f)
 
+        # Change the values to np arrays from lists
+        for k, v in self.vectorized_data.items():
+            self.vectorized_data[k] = np.array(v)
+
         return self.vectorized_data
 
     def load_vectorized_data(self) -> dict:
         """
         Function that loads the vectorized data.
         """
+        import numpy as np  # Add at the top of the file if not already present
+
         with open(
             self.vectorized_data_path / Path("vectorized_data.json"),
             "r",
             encoding="utf-8",
         ) as f:
-            self.vectorized_data = json.load(f)
+            data = json.load(f)
+            # Convert lists back to numpy arrays if needed
+            self.vectorized_data = {k: np.array(v) for k, v in data.items()}
 
         return self.vectorized_data
 

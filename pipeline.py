@@ -99,9 +99,6 @@ def __traverse_data_pipeline(
     else:
         title_vector_dict = data_handler.load_vectorized_data()
 
-    # Now we can vectorize the data
-    title_vector_dict = data_handler.vectorize_data()
-
     return title_vector_dict
 
 
@@ -110,11 +107,11 @@ def __set_up_local_vector_db(title_vector_dict: Dict[str, str]):
     Function that sets up a local vector DB if it doesn't already exist.
     """
     print("Setting up local vector DB...")
-    print(title_vector_dict)
+    # print(title_vector_dict)
     pass
 
 
-def __set_up_LLM():
+def __set_up_LLM(context):
     """
     Function that sets up the LLM.
     """
@@ -128,4 +125,4 @@ def __run_LLM():
     pass
 
 
-run_LLM(clean_data=clean_data)
+run_LLM(clean_data=clean_data, vectorize_data=vectorize_data)

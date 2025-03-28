@@ -33,8 +33,8 @@ The integration of large language models (LLMs) in medical education remains con
   python pipeline.py --clean_data=False
   ```
 
-  - The same goes for vectorizing you can avoid doing that like this (if you've done it already it will be saved to the vectorized_data folder in a txt file)
+  - The same goes for vectorizing you can avoid doing that like this (if you've done it already it will be saved to the vectorized_data folder in a json file)
 
   ```
-  python pipeline.py --clean_data=False --vectorize_data=True
+  python pipeline.py --clean_data=False --vectorize_data=False
   ```

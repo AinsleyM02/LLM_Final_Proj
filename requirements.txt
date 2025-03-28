@@ -4,3 +4,4 @@ docx2txt # This is used to parse the docx files
 python-pptx # This is used to parse the pptx files
 numpy # We always import numpy lol
 lxml # This is used to parse the nxml files
+tqdm # This is used to show the progress bar

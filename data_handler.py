@@ -14,6 +14,7 @@ Other formats will be ignored. Once cleaned the data will be extracted to a unif
 # Standard imports
 import os
 import re
+import json
 from typing import Tuple
 from pathlib import Path
 
@@ -25,6 +26,7 @@ from const import PATH_TO_DATA, PATH_TO_CLEANED_DATA, PATH_TO_VECTORIZED_DATA
 import fitz
 import docx2txt
 import lxml.etree as et
+from tqdm import tqdm
 from pptx import Presentation
 
 
@@ -48,6 +50,23 @@ class DataHandler:
         clean_data_path: Path = Path(PATH_TO_CLEANED_DATA),
         vectorized_data_path: Path = Path(PATH_TO_VECTORIZED_DATA),
     ) -> None:
+        # Ensure the params are paths
+        if not isinstance(data_path, Path):
+            raise ValueError("Data path must be a Path object.")
+        if not isinstance(clean_data_path, Path):
+            raise ValueError("Clean data path must be a Path object.")
+        if not isinstance(vectorized_data_path, Path):
+            raise ValueError("Vectorized data path must be a Path object.")
+        if not data_path.exists():
+            raise FileNotFoundError(f"Data path {data_path} does not exist.")
+        if not clean_data_path.exists():
+            raise FileNotFoundError(
+                f"Clean data path {clean_data_path} does not exist."
+            )
+        if not vectorized_data_path.exists():
+            raise FileNotFoundError(
+                f"Vectorized data path {vectorized_data_path} does not exist."
+            )
         self.data_path = data_path
         self.clean_data_path = clean_data_path
         self.vectorized_data_path = vectorized_data_path
@@ -57,8 +76,10 @@ class DataHandler:
         self.vectorized_data = {}  # Dictionary of titles and vectorized content
 
     def load_data(self) -> None:
+        print("Loading data...")
         for root, dirs, files in os.walk(self.data_path):
-            for file in files:
+            print(f"Reading {root}...")
+            for file in tqdm(files):
                 if file.split(".")[-1] in self.file_types:
                     self.data.append(os.path.join(root, file))
                 # If .gitkeep file, ignore
@@ -70,7 +91,8 @@ class DataHandler:
                     os.remove(os.path.join(root, file))
 
     def clean_data(self) -> None:
-        for file in self.data:
+        print("Cleaning data...")
+        for file in tqdm(self.data):
             if file.split(".")[-1] in ["pdf", "PDF"]:
                 title, text = self.__clean_pdf(file)
             elif file.split(".")[-1] in ["txt", "TXT"]:
@@ -112,10 +134,11 @@ class DataHandler:
         if not self.data_dict:
             # Get data from the cleaned data folder
             for root, dirs, files in os.walk(self.clean_data_path):
-                for file in files:
+                print(f"Reading {root} for vectorization...")
+                for file in tqdm(files):
                     with open(os.path.join(root, file), "r", encoding="utf-8") as f:
-                        # Print file name
-                        print(f"Reading {file}...")
+                        # # Print file name
+                        # print(f"Reading {file}...")
                         text = f.read()
                     title = Path(file).stem
                     self.data_dict[title] = text
@@ -129,14 +152,13 @@ class DataHandler:
             print(f"Vectorizing {title}...")
             self.vectorized_data[title] = embed_text(text)
 
-        # Save the vectorized data
+        # Save the vectorized data in json format
         with open(
-            f"{self.vectorized_data_path / Path('vectorized_data.txt')}",
+            self.vectorized_data_path / Path("vectorized_data.json"),
             "w",
             encoding="utf-8",
         ) as f:
-            for title, vector in self.vectorized_data.items():
-                f.write(f"{title}: {vector}\n")
+            json.dump(self.vectorized_data, f)
 
         return self.vectorized_data
 
@@ -145,15 +167,11 @@ class DataHandler:
         Function that loads the vectorized data.
         """
         with open(
-            f"{self.vectorized_data_path / Path('vectorized_data.txt')}",
+            self.vectorized_data_path / Path("vectorized_data.json"),
             "r",
             encoding="utf-8",
         ) as f:
-            lines = f.readlines()
-
-        for line in lines:
-            title, vector = line.split(": ")
-            self.vectorized_data[title] = vector
+            self.vectorized_data = json.load(f)
 
         return self.vectorized_data
 
@@ -168,7 +186,7 @@ class DataHandler:
         - title: str, title of the file
         - text: str, extracted text from the file
         """
-        print(f"Cleaning {file}...")
+        # print(f"Cleaning {file}...")
 
         # Ensure correct file type
         if file.split(".")[-1].lower() != "pdf":
@@ -202,7 +220,7 @@ class DataHandler:
         - title: str, title of the file
         - text: str, extracted text from the file
         """
-        print(f"Cleaning {file}...")
+        # print(f"Cleaning {file}...")
         # Ensure right file type
         if file.split(".")[-1] not in ["txt", "TXT"]:
             raise ValueError(f"File {file} is not a TXT file. Cannot clean as TXT.")
@@ -223,7 +241,7 @@ class DataHandler:
         - title: str, title of the file
         - text: str, extracted text from the file
         """
-        print(f"Cleaning {file}...")
+        # print(f"Cleaning {file}...")
         # Ensure right file type
         if file.split(".")[-1] not in ["docx", "DOCX"]:
             raise ValueError(f"File {file} is not a DOCX file. Cannot clean as DOCX.")
@@ -243,7 +261,7 @@ class DataHandler:
         - title: str, title of the file
         - text: str, extracted text from the file
         """
-        print(f"Cleaning {file}...")
+        # print(f"Cleaning {file}...")
         # Ensure right file type
         if file.split(".")[-1] not in ["pptx", "PPTX"]:
             raise ValueError(f"File {file} is not a PPTX file. Cannot clean as PPTX.")
@@ -268,7 +286,7 @@ class DataHandler:
         - title: str, title of the file
         - text: str, extracted text from the file
         """
-        print(f"Cleaning {file}...")
+        # print(f"Cleaning {file}...")
         # Ensure right file type
         if file.split(".")[-1] != "nxml":
             raise ValueError(f"File {file} is not an nxml file. Cannot clean as nxml.")
@@ -284,7 +302,7 @@ class DataHandler:
             print(f"Error extracting title from {file}. Skipping...")
             return None, None
 
-        print(f"Topic {title}...")
+        # print(f"Topic {title}...")
 
         # Extract tags with the sec-type as long as it does not have the value of "Continuing Education Activity"
         text = ""

@@ -132,9 +132,12 @@ class DataHandler:
         Function that vectorizes the data.
         """
         if not self.data_dict:
+            print(
+                "Didn't clean data, assuming it's done already and saved. Loading data..."
+            )
             # Get data from the cleaned data folder
             for root, dirs, files in os.walk(self.clean_data_path):
-                print(f"Reading {root} for vectorization...")
+                print(f"Reading {root}...")
                 for file in tqdm(files):
                     with open(os.path.join(root, file), "r", encoding="utf-8") as f:
                         # # Print file name
@@ -146,10 +149,12 @@ class DataHandler:
         if not self.data_dict:
             raise ValueError("No data to vectorize.")
 
-        for title, text in self.data_dict.items():
+        print("Vectorizing data...")
+        # Vectorize the data
+        for title, text in tqdm(self.data_dict.items()):
             if title == ".gitkeep":
                 continue
-            print(f"Vectorizing {title}...")
+            # print(f"Vectorizing {title}...")
             self.vectorized_data[title] = embed_text(text)
 
         # Save the vectorized data in json format

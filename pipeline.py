@@ -74,3 +74,6 @@ def __run_LLM():
     Function that runs the LLM.
     """
     pass
+
+
+run_LLM()

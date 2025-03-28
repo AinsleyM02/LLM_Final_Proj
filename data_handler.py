@@ -19,6 +19,10 @@ from pathlib import Path
 from utils import embed_text
 from const import PATH_TO_DATA, PATH_TO_CLEANED_DATA
 
+# External imports
+import textract
+import lxml.etree as et
+
 
 class DataHandler:
     """
@@ -32,9 +36,6 @@ class DataHandler:
     Methods:
     - load_data: loads the data from the data folder
     - clean_data: cleans the data
-    - clean_pdf: cleans a PDF file
-    - clean_docx: cleans a DOCX file
-    - clean_txt: cleans a TXT file
     """
 
     def __init__(
@@ -45,7 +46,7 @@ class DataHandler:
         self.data_path = data_path
         self.clean_data_path = clean_data_path
         self.data = []
-        self.file_types = ["pdf", "docx", "txt", "nxml"]
+        self.file_types = ["pdf", "docx", "txt", "pptx", "nxml"]
         self.data_dict = {}  # Dictionary of titles and extracted content
         self.vectorized_data = {}  # Dictionary of titles and vectorized content
 
@@ -54,18 +55,18 @@ class DataHandler:
             for file in files:
                 if file.split(".")[-1] in self.file_types:
                     self.data.append(os.path.join(root, file))
+                # If .gitkeep file, ignore
+                elif file == ".gitkeep":
+                    continue
                 # Else delete the file
                 else:
+                    print(f"File {file} is not in the accepted file types. Deleting...")
                     os.remove(os.path.join(root, file))
 
     def clean_data(self) -> None:
         for file in self.data:
-            if file.split(".")[-1] == "pdf":
-                title, text = self.__clean_pdf(file)
-            elif file.split(".")[-1] == "docx":
-                title, text = self.__clean_docx(file)
-            elif file.split(".")[-1] == "txt":
-                title, text = self.__clean_txt(file)
+            if file.split(".")[-1] in ["pdf", "PDF", "docx", "DOCX", "pptx", "PPTX"]:
+                title, text = self.__clean_textract(file)
             elif file.split(".")[-1] == "nxml":
                 title, text = self.__clean_nxml(file)
             self.data_dict[title] = text
@@ -81,23 +82,58 @@ class DataHandler:
         for title, text in self.data_dict.items():
             self.vectorized_data[title] = embed_text(text)
 
-    def __clean_pdf(self, file) -> Tuple[str, str]:
+    def __clean_textract(self, file) -> Tuple[str, str]:
         """
-        Function that cleans a PDF file.
+        Function that cleans a PDF, DOCX, or PPTX file using textract.
 
         Parameters:
-        - file: str, path to the PDF file
+        - file: str, path to the file
 
         Returns:
-        - title: str, title of the PDF
-        - text: str, extracted text from the PDF
+        - title: str, title of the file
+        - text: str, extracted text from the file
         """
-
-    def __clean_docx(self, file):
-        pass
-
-    def __clean_txt(self, file):
-        pass
+        if file.split(".")[-1] not in ["pdf", "PDF", "docx", "DOCX", "pptx", "PPTX"]:
+            raise ValueError(
+                f"File {file} is not a PDF, DOCX, or PPTX file. Cannot clean using textract."
+            )
+        text = textract.process(file).decode("utf-8")
+        title = file.split("/")[-1].split(".")[0]
+        return title, text
 
     def __clean_nxml(self, file):
-        pass
+        """
+        Cleans an nxml file. Specifically built to work with statpearls nxml files.
+
+        Parameters:
+        - file: str, path to the file
+
+        Returns:
+        - title: str, title of the file
+        - text: str, extracted text from the file
+        """
+        # Ensure right file type
+        if file.split(".")[-1] != "nxml":
+            raise ValueError(f"File {file} is not an nxml file. Cannot clean as nxml.")
+
+        # Set up file extraction
+        tree = et.parse(file)
+        root = tree.getroot()
+
+        # Extract the title using title-group tag
+        title = root.find(".//title-group/article-title").text
+
+        # Extract tags with the sec-type as long as it does not have the value of "Continuing Education Activity"
+        text = ""
+        for sec in root.findall(".//sec"):
+            if (
+                sec.find(".//sec-type") is not None
+                and sec.find(".//sec-type").text != "Continuing Education Activity"
+            ):
+                for element in sec:  # Iterate over child elements in order
+                    if element.tag == "title" and element.text:
+                        text += element.text + "\n"
+                    elif element.tag == "p" and element.text:
+                        text += element.text + "\n"
+
+        return title, text

@@ -21,7 +21,7 @@ The integration of large language models (LLMs) in medical education remains con
     pip install -r requirements.txt
     ```
 
-- Run pipeline with the following
+- Run pipeline with the following. This will clean the data and vectorize by default. If you are pulling from the repo you can set `--clean_data` and `--vectorize_data` to `False` (see below), since I already did this and pushed this to the repository. If you are trying to work with some of the issues with PDF extraction then you probably want to not do this tho lol.
 
   ```
   python pipline.py

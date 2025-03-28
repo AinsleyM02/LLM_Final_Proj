@@ -15,8 +15,8 @@ Other formats will be ignored. Once cleaned the data will be extracted to a unif
 import os
 import re
 import json
-from typing import Tuple
 from pathlib import Path
+from typing import Tuple, List
 
 # Internal imports
 from utils import embed_text
@@ -95,7 +95,11 @@ class DataHandler:
         print("Cleaning data...")
         for file in tqdm(self.data):
             if file.split(".")[-1] in ["pdf", "PDF"]:
-                title, text = self.__clean_pdf(file)
+                section_list = self.__clean_pdf(file)
+                for title, text in section_list:
+                    self.data_dict[title] = text
+                    self.__write_to_file(self.clean_data_path, title, text)
+                    continue
             elif file.split(".")[-1] in ["txt", "TXT"]:
                 title, text = self.__clean_txt(file)
             elif file.split(".")[-1] in ["docx", "DOCX"]:
@@ -115,18 +119,30 @@ class DataHandler:
                 continue
             self.data_dict[title] = text
 
-            # Sanitize the title by replacing path separators and invalid filename characters
-            invalid_chars = '<>:"/\\|?*'
-            safe_title = "".join(c for c in title if c not in invalid_chars)
-            safe_title = safe_title.strip()  # Remove leading/trailing whitespace
+            self.__write_to_file(self.clean_data_path, title, text)
 
-            # Save the cleaned data
-            with open(
-                f"{self.clean_data_path / Path(safe_title + '.txt')}",
-                "w",
-                encoding="utf-8",
-            ) as f:
-                f.write(text)
+    def __write_to_file(self, path: Path, title: str, text: str) -> None:
+        """
+        Function that writes the cleaned data to a file.
+
+        Parameters:
+        - path: Path, path to the folder where the cleaned data will be saved
+        - title: str, title of the data
+        - text: str, cleaned text of the data
+        """
+
+        # Sanitize the title by replacing path separators and invalid filename characters
+        invalid_chars = '<>:"/\\|?*,'
+        safe_title = "".join(c for c in title if c not in invalid_chars)
+        safe_title = safe_title.strip()  # Remove leading/trailing whitespace
+
+        # Save the cleaned data
+        with open(
+            f"{self.clean_data_path / Path(safe_title + '.txt')}",
+            "w",
+            encoding="utf-8",
+        ) as f:
+            f.write(text)
 
     def vectorize_data(self) -> None:
         """
@@ -189,39 +205,156 @@ class DataHandler:
 
         return self.vectorized_data
 
-    def __clean_pdf(self, file: str) -> Tuple[str, str]:
+    def __clean_pdf(self, file: str) -> List[Tuple[str, str]]:
         """
-        Cleans a PDF file.
+        Extracts text from a PDF file, splitting it by sections based on the Table of Contents (TOC),
+        but only considers sections up to level 2 in the TOC.
 
         Parameters:
-        - file: str, path to the file
+        - file: str, path to the PDF file.
 
         Returns:
-        - title: str, title of the file
-        - text: str, extracted text from the file
+        - List of tuples in the format ("title: section_title", text)
         """
         print(f"Cleaning {file}...")
 
-        # Ensure correct file type
+        # Ensure it's a PDF
+        if not file.lower().endswith(".pdf"):
+            raise ValueError(f"File {file} is not a PDF file. Cannot clean as PDF.")
+
+        pdf = fitz.open(file)
+        title = Path(file).stem  # Extract filename without extension
+        sections_list = []
+
+        # Step 1: Extract TOC (Table of Contents)
+        toc = pdf.get_toc()  # Returns a list: [(level, title, page), ...]
+
+        if not toc:
+            print("No TOC detected. Falling back to font-size based sectioning.")
+            return self.__extract_pdf_by_font_size(title)  # Fallback method if no TOC
+
+        # Step 2: Filter TOC to only include sections up to level 2
+        toc = [entry for entry in toc if entry[0] <= 2]  # Limit to level 1 and 2
+
+        # Step 3: Parse TOC into a dictionary {section_title: start_page}
+        section_map = {
+            entry[1]: entry[2] - 1 for entry in toc
+        }  # TOC uses 1-based indexing
+
+        # Step 4: Extract text per section
+        section_titles = list(section_map.keys())  # Ordered list of sections
+        for i, section_title in enumerate(section_titles):
+            start_page = section_map[section_title]
+            end_page = (
+                section_map[section_titles[i + 1]]
+                if i + 1 < len(section_titles)
+                else len(pdf)
+            )
+
+            # Extract text from section pages
+            section_text = []
+            for page_num in range(start_page, end_page):
+                section_text.append(pdf[page_num].get_text("text"))
+
+            section_text = self.__clean_pdf_section_text(
+                "\n".join(section_text).strip()
+            )
+
+            sections_list.append((f"{title}: {section_title}", section_text))
+
+        pdf.close()
+        return sections_list
+
+    def __extract_pdf_by_font_size(self, file: str) -> list[Tuple[str, str]]:
+        """
+        Extracts text from a PDF file and splits it by detected chapter titles.
+
+        Parameters:
+        - file: str, path to the PDF file.
+
+        Returns:
+        - sections_list: list of tuples in the format ("title: section_title", text)
+        """
+        print(f"Cleaning {file} by font size since no TOC...")
+
+        # Ensure it's a PDF
         if file.split(".")[-1].lower() != "pdf":
             raise ValueError(f"File {file} is not a PDF file. Cannot clean as PDF.")
 
-        # Open PDF file
         pdf = fitz.open(file)
-        text = ""
+        sections_list = []
+        current_section = "Introduction"  # Default section title if no headers detected
+        title = Path(file).stem  # Extracts filename without extension
+        section_text = []
+
         for page in pdf:
-            text += page.get_text("text") + "\n\n"  # Keep paragraph breaks
+            blocks = page.get_text("dict")["blocks"]
+            for block in blocks:
+                if "lines" in block:
+                    for line in block["lines"]:
+                        text = " ".join(
+                            [
+                                span["text"]
+                                for span in line["spans"]
+                                if span["text"].strip()
+                            ]
+                        )
+                        if not text:
+                            continue
+
+                        # Detect possible section titles based on large/bold font sizes
+                        for span in line["spans"]:
+                            font_size = span["size"]
+
+                            if font_size > 25:  # Tune thresholds as needed
+                                # Store previous section
+                                if section_text:
+                                    sections_list.append(
+                                        (
+                                            f"{title}: {current_section}",
+                                            self.__clean_pdf_section_text(
+                                                "\n".join(section_text).strip()
+                                            ),
+                                        )
+                                    )
+                                    section_text = []
+
+                                # Update section title
+                                current_section = text.strip()
+                                break  # Stop checking other spans if a title is found
+
+                        section_text.append(text)
+
+        # Append last section
+        if section_text:
+            sections_list.append((f"{title}: {current_section}", section_text))
 
         pdf.close()
+        return sections_list
 
+    def __clean_pdf_section_text(self, section_text: str) -> str:
+        """
+        Cleans the text of a section extracted from a PDF.
+
+        Parameters:
+        - section_text: str, text extracted from a PDF section
+
+        Returns:
+        - cleaned_text: str, cleaned text
+        """
         # Fix hyphenated words (e.g., "micro-\nscope" -> "microscope")
-        text = re.sub(r"(\w+)-\n(\w+)", r"\1\2", text)
+        section_text = re.sub(r"(\w+)-\n(\w+)", r"\1\2", section_text)
 
-        # Remove unnecessary line breaks within paragraphs
-        text = re.sub(r"(?<!\n)\n(?!\n)", " ", text)
+        # Remove line breaks that occur mid-sentence or in the middle of a paragraph
+        section_text = re.sub(r"(?<!\n)\n(?!\n|\s*\w)", " ", section_text)
 
-        title = Path(file).stem
-        return title, text
+        # Ensure that sentence-ending line breaks are preserved
+        section_text = re.sub(r"([.!?])\n+", r"\1\n", section_text)
+
+        # Clean extra spaces, removing excessive whitespaces or spaces around line breaks
+        section_text = re.sub(r"\s+", " ", section_text).strip()
+
+        return section_text
 
     def __clean_txt(self, file: str) -> Tuple[str, str]:
         """

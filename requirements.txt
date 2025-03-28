@@ -1,0 +1,2 @@
+sentence-transformers # This is used to embed the text data
+numpy

@@ -13,6 +13,7 @@ This should:
 
 # Standard imports
 from typing import Dict
+from pathlib import Path
 
 # Internal imports
 from const import PATH_TO_DATA
@@ -23,17 +24,17 @@ def run_LLM():
     """
     Function that runs the LLM.
     """
-    title_vector_dict = __traverse_data_pipeline(PATH_TO_DATA)
+    title_vector_dict = __traverse_data_pipeline(Path(PATH_TO_DATA))
 
     # Set up the local vector DB and add data to it
-    __set_up_local_vector_db()
+    vector_db = __set_up_local_vector_db(title_vector_dict)
 
     # Get LLM ready and run it
-    __set_up_LLM()
+    __set_up_LLM(context=vector_db)
     __run_LLM()  # Ideally, we take input and output in the terminal.
 
 
-def __traverse_data_pipeline(data_path=PATH_TO_DATA) -> Dict[str, str]:
+def __traverse_data_pipeline(data_path: Path = Path(PATH_TO_DATA)) -> Dict[str, str]:
     """
     Function that traverses the data pipeline.
 
@@ -51,7 +52,7 @@ def __traverse_data_pipeline(data_path=PATH_TO_DATA) -> Dict[str, str]:
     data_handler.clean_data()
 
     # Extract the text from the data and vectorize
-    return data_handler.extract_text()
+    return data_handler.g()
 
 
 def __set_up_local_vector_db():

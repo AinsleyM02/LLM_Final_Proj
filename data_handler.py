@@ -69,6 +69,10 @@ class DataHandler:
                 title, text = self.__clean_textract(file)
             elif file.split(".")[-1] == "nxml":
                 title, text = self.__clean_nxml(file)
+
+            if title is None or text is None:
+                print(f"Error cleaning {file}. Skipping...")
+                continue
             self.data_dict[title] = text
 
             # Sanitize the title by replacing path separators and invalid filename characters
@@ -131,7 +135,11 @@ class DataHandler:
         root = tree.getroot()
 
         # Extract the title using title-group tag
-        title = root.find(".//title-group/title").text
+        try:
+            title = root.find(".//title-group/title").text
+        except AttributeError:
+            print(f"Error extracting title from {file}. Skipping...")
+            return None, None
 
         print(f"Topic {title}...")
 
@@ -147,4 +155,8 @@ class DataHandler:
                     elif element.tag == "p" and element.text:
                         text += element.text + "\n"
 
-        return title, text
+        if text == "":
+            print(f"Error extracting text from {file}. Skipping...")
+            return None, None
+
+        return f"StatPearls Chapter: {title}", text

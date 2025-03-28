@@ -6,11 +6,15 @@ The integration of large language models (LLMs) in medical education remains con
 
 ## Developers
 
+Please make sure you are working on a branch then merging changes when they are ready!
+
 ### Set Up
 
 - Create a folder for the project locally and create a venv
 
-- Start by pulling the code into your local repo and change into the remote main branch.
+- Ensure you have GitLFS installed on your computer
+
+- Then pull the code into your local repo and change into the remote main branch. Verify that you have `vectorized_data/vectorized_data.json` and it is not an empty file (this verifies that GitLFS works).
 
 - Place raw data within the "data" folder.
 

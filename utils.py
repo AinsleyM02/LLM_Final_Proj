@@ -21,6 +21,7 @@ from sentence_transformers import SentenceTransformer
 embedding_model = SentenceTransformer(EMBEDDING_MODEL)
 
 
+# Using this and word length for speed's sake
 def sentence_splitter(text):
     return re.split(r"(?<=[.!?])\s+", text.strip())
 

@@ -37,8 +37,9 @@ class DataHandler:
 
     Attributes:
     - data_path: str, path to the data folder
-    - data: list, list of paths to the data files
-    - file_types: list, list of accepted file types
+    - clean_data_path: str, path to the cleaned data folder
+    - vectorized_data_path: str, path to the vectorized data folder
+    - max_size_per_file: int, maximum size (number of key value pairs) of the dictionary before saving
 
     Methods:
     - load_data: loads the data from the data folder
@@ -50,6 +51,7 @@ class DataHandler:
         data_path: Path = Path(PATH_TO_DATA),
         clean_data_path: Path = Path(PATH_TO_CLEANED_DATA),
         vectorized_data_path: Path = Path(PATH_TO_VECTORIZED_DATA),
+        max_size_per_file: int = 1000,
     ) -> None:
         # Ensure the params are paths
         if not isinstance(data_path, Path):
@@ -73,6 +75,9 @@ class DataHandler:
         self.vectorized_data_path = vectorized_data_path
         self.data = []
         self.file_types = ["pdf", "docx", "txt", "pptx", "nxml"]
+        self.max_size_per_file = (
+            max_size_per_file  # Maximum size of the dictionary before saving
+        )
         self.data_dict = {}  # Dictionary of titles and extracted content
         self.vectorized_data = {}  # Dictionary of titles and vectorized content
 
@@ -160,7 +165,7 @@ class DataHandler:
 
     def vectorize_data(self) -> None:
         """
-        Function that vectorizes the data.
+        Function that vectorizes the data and saves them in multiple files when the dictionary size exceeds the limit.
         """
         if not self.data_dict:
             print(
@@ -171,8 +176,6 @@ class DataHandler:
                 print(f"Reading {root}...")
                 for file in tqdm(files):
                     with open(os.path.join(root, file), "r", encoding="utf-8") as f:
-                        # # Print file name
-                        # print(f"Reading {file}...")
                         text = f.read()
                     title = Path(file).stem
                     self.data_dict[title] = text
@@ -181,43 +184,56 @@ class DataHandler:
             raise ValueError("No data to vectorize.")
 
         print("Vectorizing data...")
-        # Vectorize the data
+
+        current_count = 0  # To keep track of how many items are processed before saving
+        file_counter = 1  # To keep track of file names
+
+        # Vectorize the data and store them in batches
         for title, text in tqdm(self.data_dict.items()):
             if title == ".gitkeep":
                 continue
-            # print(f"Vectorizing {title}...")
+
+            # Vectorize the text (assuming embed_text is defined elsewhere)
             self.vectorized_data[title] = embed_text(text).tolist()
 
-        # Save the vectorized data in json format
+            current_count += 1  # Increment the count
+
+            # Check if the current dictionary has reached the size limit
+            if current_count >= self.max_size_per_file:
+                # Save the vectorized data to a file
+                self.__save_vectorized_data(file_counter)
+                file_counter += 1  # Increment the file counter
+                current_count = 0  # Reset the count
+                self.vectorized_data = {}  # Clear the current dictionary to start fresh
+
+        # Save any remaining data that was not saved in the last file
+        if self.vectorized_data:
+            self.__save_vectorized_data(file_counter)
+
+    def __save_vectorized_data(self, file_counter: int) -> None:
+        """
+        Helper function to save vectorized data to a file.
+        """
+        file_name = f"vectorized_data_{file_counter}.json"
         with open(
-            self.vectorized_data_path / Path("vectorized_data.json"),
-            "w",
-            encoding="utf-8",
+            self.vectorized_data_path / Path(file_name), "w", encoding="utf-8"
         ) as f:
             json.dump(self.vectorized_data, f)
+        # print(f"Saved vectorized data to {file_name}")
 
-        # Change the values to np arrays from lists
-        for k, v in self.vectorized_data.items():
-            self.vectorized_data[k] = np.array(v)
-
-        return self.vectorized_data
-
-    def load_vectorized_data(self) -> dict:
+    def load_vectorized_data(self):
         """
-        Function that loads the vectorized data.
+        Generator that yields (key, vector) pairs from vectorized data files,
+        instead of loading everything into memory at once.
         """
-        import numpy as np  # Add at the top of the file if not already present
-
-        with open(
-            self.vectorized_data_path / Path("vectorized_data.json"),
-            "r",
-            encoding="utf-8",
-        ) as f:
-            data = json.load(f)
-            # Convert lists back to numpy arrays if needed
-            self.vectorized_data = {k: np.array(v) for k, v in data.items()}
-
-        return self.vectorized_data
+        for file in os.listdir(self.vectorized_data_path):
+            if file.endswith(".json"):
+                with open(
+                    self.vectorized_data_path / Path(file), "r", encoding="utf-8"
+                ) as f:
+                    data = json.load(f)
+                    for k, v in data.items():
+                        yield k, np.array(v)
 
     def __clean_pdf(self, file: str) -> List[Tuple[str, str]]:
         """

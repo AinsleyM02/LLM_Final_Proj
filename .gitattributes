@@ -1,2 +1,4 @@
 vectorized_data/vectorized_data.json filter=lfs diff=lfs merge=lfs -text
+vectorized_data/vectorized_data* filter=lfs diff=lfs merge=lfs -text
 *vectorized_data.json filter=lfs diff=lfs merge=lfs -text
+

@@ -7,6 +7,9 @@ Namely:
 - decoding text: used to decode embeddings to text
 """
 
+# Standard imports
+import re
+
 # Internal imports
 from const import EMBEDDING_MODEL
 
@@ -18,17 +21,38 @@ from sentence_transformers import SentenceTransformer
 embedding_model = SentenceTransformer(EMBEDDING_MODEL)
 
 
-def embed_text(text: str) -> np.array:
+def simple_sentence_splitter(text):
+    return re.split(r"(?<=[.!?])\s+", text.strip())
+
+
+def embed_text(text: str, max_chunk_size: int = 256) -> np.array:
     """
-    Function that embeds text.
+    Function that embeds text by chunking if necessary.
 
     Parameters:
     - text: str, text to embed
+    - max_chunk_size: int, maximum number of tokens per chunk
 
     Returns:
-    - np.array, embedding of the text
+    - np.array, stacked embeddings of all chunks
     """
-    return embedding_model.encode(text)
+    sentences = simple_sentence_splitter(text)
+    chunks = []
+    current_chunk = []
+
+    for sentence in sentences:
+        current_chunk.append(sentence)
+        if len(" ".join(current_chunk).split()) > max_chunk_size:
+            # Remove last sentence if it exceeds limit
+            current_chunk.pop()
+            chunks.append(" ".join(current_chunk))
+            current_chunk = [sentence]
+
+    if current_chunk:
+        chunks.append(" ".join(current_chunk))
+
+    embeddings = [embedding_model.encode(chunk) for chunk in chunks]
+    return np.vstack(embeddings)
 
 
 def decode_text(embedding: np.array) -> str:

@@ -16,6 +16,7 @@ from const import EMBEDDING_MODEL
 # External imports
 import numpy as np
 from sentence_transformers import SentenceTransformer
+from langchain.embeddings import HuggingFaceEmbeddings
 
 # Set up the embedding model
 embedding_model = SentenceTransformer(EMBEDDING_MODEL)
@@ -24,6 +25,20 @@ embedding_model = SentenceTransformer(EMBEDDING_MODEL)
 # Using this and word length for speed's sake
 def sentence_splitter(text):
     return re.split(r"(?<=[.!?])\s+", text.strip())
+
+
+def get_model() -> HuggingFaceEmbeddings:
+    """
+    Function that embeds text without chunking.
+
+    Parameters:
+    - text: str, text to embed
+
+    Returns:
+    - SentenceTransformer, embedding model
+    """
+
+    return HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
 
 
 def embed_text(text: str, max_chunk_size: int = 256) -> np.array:

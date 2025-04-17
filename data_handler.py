@@ -228,6 +228,7 @@ class DataHandler:
         """
         for file in os.listdir(self.vectorized_data_path):
             if file.endswith(".json"):
+                print(f"Loading {file}...")
                 with open(
                     self.vectorized_data_path / Path(file), "r", encoding="utf-8"
                 ) as f:

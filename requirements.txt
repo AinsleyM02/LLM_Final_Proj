@@ -5,3 +5,6 @@ python-pptx # This is used to parse the pptx files
 numpy # We always import numpy lol
 lxml # This is used to parse the nxml files
 tqdm # This is used to show the progress bar
+chromadb # This is used to store the embeddings and the text data
+langchain # This is used to create the chain of LLMs and the vector store
+langchain-community # This is used to create the chain of LLMs and the vector store

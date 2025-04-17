@@ -9,6 +9,7 @@ Namely:
 
 # Standard imports
 import re
+from typing import Tuple
 
 # Internal imports
 from const import EMBEDDING_MODEL
@@ -40,7 +41,7 @@ def embed_text_no_chunk(text: str) -> np.array:
     return embedding_model.encode(text)
 
 
-def embed_text(text: str, max_chunk_size: int = 256) -> np.array:
+def embed_text(text: str, max_chunk_size: int = 256) -> Tuple[np.ndarray, list[str]]:
     """
     Function that embeds text by chunking if necessary.
 
@@ -49,7 +50,7 @@ def embed_text(text: str, max_chunk_size: int = 256) -> np.array:
     - max_chunk_size: int, maximum number of tokens per chunk
 
     Returns:
-    - np.array, stacked embeddings of all chunks
+    - Tuple: (np.array of embeddings, list of corresponding chunks)
     """
     sentences = sentence_splitter(text)
     chunks = []  # A list of all chunks
@@ -76,4 +77,4 @@ def embed_text(text: str, max_chunk_size: int = 256) -> np.array:
 
     # Now we have a list of embeddings, let's stack them
     # We can use np.vstack to stack the embeddings
-    return np.vstack(embeddings)
+    return np.vstack(embeddings), chunks  # Return the embeddings and the chunks

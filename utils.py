@@ -16,7 +16,6 @@ from const import EMBEDDING_MODEL
 # External imports
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from langchain.embeddings import HuggingFaceEmbeddings
 
 # Set up the embedding model
 embedding_model = SentenceTransformer(EMBEDDING_MODEL)
@@ -27,7 +26,7 @@ def sentence_splitter(text):
     return re.split(r"(?<=[.!?])\s+", text.strip())
 
 
-def get_model() -> HuggingFaceEmbeddings:
+def embed_text_no_chunk(text: str) -> np.array:
     """
     Function that embeds text without chunking.
 
@@ -35,10 +34,10 @@ def get_model() -> HuggingFaceEmbeddings:
     - text: str, text to embed
 
     Returns:
-    - SentenceTransformer, embedding model
+    - np.array, embedding of the text
     """
-
-    return HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+    # We can use the embedding model to encode the text
+    return embedding_model.encode(text)
 
 
 def embed_text(text: str, max_chunk_size: int = 256) -> np.array:
@@ -78,16 +77,3 @@ def embed_text(text: str, max_chunk_size: int = 256) -> np.array:
     # Now we have a list of embeddings, let's stack them
     # We can use np.vstack to stack the embeddings
     return np.vstack(embeddings)
-
-
-def decode_text(embedding: np.array) -> str:
-    """
-    Function that decodes an embedding.
-
-    Parameters:
-    - embedding: np.array, embedding to decode
-
-    Returns:
-    - str, decoded text
-    """
-    return embedding_model.decode(embedding)

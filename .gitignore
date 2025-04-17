@@ -175,4 +175,4 @@ data/*
 cleaned_data/*
 !cleaned_data/.gitkeep
 
-vectorized_data/vectorized_data_*
+vectorized_data_*.json

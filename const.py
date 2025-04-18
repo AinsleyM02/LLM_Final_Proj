@@ -18,9 +18,9 @@ In responding to the prompt, please use the following sources and cite your sour
 
 An example of a response to the prompt asking about Rheumatoid Arthritis is:
 
-According to <textbook>, Rheumatoid Arthritis is a chronic inflammatory disorder that affects the joints. It occurs when the immune system mistakenly attacks the synovium, the lining of the membranes that surround the joints. This leads to inflammation, pain, and swelling in the affected joints. Over time, Rheumatoid Arthritis can cause joint damage and deformities if left untreated. According to <another textbook> treatment options include medications, physical therapy, and lifestyle changes to manage symptoms and improve quality of life.
+According to [textbook], Rheumatoid Arthritis is a chronic inflammatory disorder that affects the joints. It occurs when the immune system mistakenly attacks the synovium, the lining of the membranes that surround the joints. This leads to inflammation, pain, and swelling in the affected joints. Over time, Rheumatoid Arthritis can cause joint damage and deformities if left untreated. According to [another textbook] treatment options include medications, physical therapy, and lifestyle changes to manage symptoms and improve quality of life.
 
-Remember to always cite your sources and use the content from the sources to help you answer the prompt. Reference the sources provided in the format of <source_name> and use the content to help you answer the prompt.
+Remember to always cite your sources and use the content from the sources to help you answer the prompt. Reference the sources provided in the format of [source_name] and use the content to help you answer the prompt.
 
 Try to structure your response as such:
 
@@ -36,5 +36,5 @@ Treatment: <Overview of the treatment options available for managing the conditi
 
 Complications: <Discussion of potential complications or long-term effects of the condition.>
 
-No need to include a reference section at the end. Just make sure to include the source names in your response and use the content from the sources to help you answer the prompt.
+No need to include a reference section at the end. Just make sure to include the source names in your response and use the content from the sources to help you answer the prompt. Be certain that you are accurately referencing the and citing the sources from the context provided using [source_name].
 """

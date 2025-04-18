@@ -12,12 +12,15 @@ This should:
 """
 
 # Standard imports
-import sys
 import json
 import argparse
 import shutil
 import requests
+import subprocess
 from pathlib import Path
+
+# External imports
+from tqdm import tqdm
 
 # Internal imports
 from const import PATH_TO_DATA, SYSTEM_PROMPT_TEMPLATE
@@ -123,17 +126,32 @@ def __set_up_local_vector_db(datahandler: DataHandler) -> ChromaDB:
 def __get_llm():
     """
     Returns a function that sends a prompt to Ollama's local API using the specified model.
-    Supports streaming output.
+    Supports streaming output. Automatically pulls the model if not already downloaded.
     """
 
     # Check if Ollama is installed
     if shutil.which("ollama") is None:
-        print(
+        raise EnvironmentError(
             r'Ollama is not installed. Please install it from https://ollama.com/download. If installed, ensure it\'s in your PATH. You can do this with: $env:Path += ";C:\Users\<YourUsername>\AppData\Local\Programs\Ollama\" and restarting your computer.'
         )
-        sys.exit(1)
+
+    def ensure_model(model: str):
+        try:
+            # Check if model exists
+            tags = requests.get("http://localhost:11434/api/tags").json()
+            if model not in [m["name"] for m in tags.get("models", [])]:
+                print(f"Model '{model}' not found locally. Pulling with ollama CLI...")
+                subprocess.run(["ollama", "pull", model], check=True)
+            else:
+                print(f"Model '{model}' is already downloaded.")
+        except Exception as e:
+            raise RuntimeError(
+                f"Error downloading model '{model}': {e}\n\nPlease ensure Ollama is running and the model name is correct."
+            )
 
     def llm(prompt: str, model="mistral:instruct", host="http://localhost:11434"):
+        ensure_model(model)
+
         try:
             with requests.post(
                 f"{host}/api/generate",
@@ -153,7 +171,9 @@ def __get_llm():
 
 
 def build_system_prompt(prompt: str, sources: list[tuple[str, str]]) -> str:
-    formatted_sources = "\n\n".join(f"{name}: {content}" for name, content in sources)
+    formatted_sources = "\n\n".join(
+        f"Source {name} says ...{content}..." for name, content in sources
+    )
     return SYSTEM_PROMPT_TEMPLATE.format(
         prompt=prompt, formatted_sources=formatted_sources
     )
@@ -188,9 +208,6 @@ def __set_up_and_run_LLM(vector_db):
         # Build the prompt
         prompt = build_system_prompt(query, sources)
 
-        print("Full Prompt: ", prompt)
-
-        # Get the LLM response
         # Get the LLM response (streaming)
         print("LLM is processing...")
         for chunk in llm(prompt):

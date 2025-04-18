@@ -68,12 +68,11 @@ def run_LLM(clean_data: bool = True, vectorize_data: bool = True):
     vector_db = __set_up_local_vector_db(datahandler)
 
     # To verify this works search and print results
-    context = vector_db.search("Teach me about medullary thyroid cancer")
-    print("Context: ", context)
+    # context = vector_db.search("Teach me about medullary thyroid cancer")
+    # print("Context: ", context)
 
     # Get LLM ready and run it
-    __set_up_LLM(context=vector_db)
-    __run_LLM()  # Ideally, we take input and output in the terminal.
+    __set_up_and_run_LLM(context=vector_db)
 
 
 def __traverse_data_pipeline(
@@ -118,19 +117,13 @@ def __set_up_local_vector_db(datahandler: DataHandler) -> ChromaDB:
     return vector_db
 
 
-def __set_up_LLM(context):
+def __set_up_and_run_LLM(context):
     """
     Function that sets up the LLM.
     """
     # We can discuss this once we have the vector DB set up.
-    pass
-
-
-def __run_LLM() -> None:
-    """
-    Function that runs the LLM.
-    """
-    # This function should query the user for input and run the LLM on the input (while pulling context from the vector DB for each query).
+    # Prob worth creating a class? that loads the LLM or downloads it if not already present.
+    # Then it internally can handle querying the vector DB for context and running the LLM on the input.
     # This can be a while loop that they enter 'q' to quit.
     pass
 

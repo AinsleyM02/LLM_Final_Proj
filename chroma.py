@@ -10,6 +10,7 @@ import gzip
 import uuid
 import base64
 from tqdm import tqdm
+from typing import Dict
 
 # Third party imports
 import chromadb
@@ -105,7 +106,7 @@ class ChromaDB:
                         ],
                     )
 
-    def search(self, search_str: str, n_results: int = 5) -> list:
+    def search(self, search_str: str, n_results: int = 5) -> Dict[str, str]:
         """
         Search for a string in the ChromaDB collection.
 
@@ -114,7 +115,7 @@ class ChromaDB:
             n_results (int): The number of results to return.
 
         Returns:
-            list: List of tuples containing the section name and the corresponding text.
+            Dict[str, str]: A dictionary with IDs and their corresponding texts.
         """
         # Ensure search string is not empty and is a string
         if not search_str or not isinstance(search_str, str):

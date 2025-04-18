@@ -142,8 +142,6 @@ def __get_llm():
             if model not in [m["name"] for m in tags.get("models", [])]:
                 print(f"Model '{model}' not found locally. Pulling with ollama CLI...")
                 subprocess.run(["ollama", "pull", model], check=True)
-            else:
-                print(f"Model '{model}' is already downloaded.")
         except Exception as e:
             raise RuntimeError(
                 f"Error downloading model '{model}': {e}\n\nPlease ensure Ollama is running and the model name is correct."
@@ -195,6 +193,11 @@ def __set_up_and_run_LLM(vector_db):
         # Get relevant source context from vector DB
         context_results = vector_db.search(query)
 
+        for title, text in context_results.items():
+            print(f"Source Name: {title.split('_', 1)[1]}")
+            print(text)
+            print("\n")
+
         # Ensure context is in list-of-tuples format
         if isinstance(context_results, dict):
             sources = [
@@ -214,7 +217,7 @@ def __set_up_and_run_LLM(vector_db):
             print(chunk, end="", flush=True)
 
         # Print sources that we pulled from the vector DB
-        print("\nReferences pulled:")
+        print("\n\nReferences pulled:")
         for title in context_results.keys():
             print(f"- {title.split("_", 1)[1]}")
 

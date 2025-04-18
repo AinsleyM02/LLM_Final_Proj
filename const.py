@@ -4,9 +4,6 @@ PATH_TO_CLEANED_DATA = "cleaned_data"
 PATH_TO_VECTORIZED_DATA = "vectorized_data"
 PATH_TO_VECTOR_DB = "vector_db"
 
-# Embedding models
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-
 SYSTEM_PROMPT_TEMPLATE = """
 You are a helpful assistant trained to provide detailed and well-cited responses to medical and scientific prompts.
 

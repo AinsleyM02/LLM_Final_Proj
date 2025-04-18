@@ -19,11 +19,9 @@ import requests
 import subprocess
 from pathlib import Path
 
-# External imports
-from tqdm import tqdm
-
 # Internal imports
 from const import PATH_TO_DATA, SYSTEM_PROMPT_TEMPLATE
+from config import LLM_MODEL
 from data_handler import DataHandler
 from chroma import ChromaDB
 
@@ -147,10 +145,11 @@ def __get_llm():
                 f"Error downloading model '{model}': {e}\n\nPlease ensure Ollama is running and the model name is correct."
             )
 
-    def llm(prompt: str, model="mistral:instruct", host="http://localhost:11434"):
+    def llm(prompt: str, model=LLM_MODEL, host="http://localhost:11434"):
         ensure_model(model)
 
         try:
+            print("LLM is preparing it's response...")
             with requests.post(
                 f"{host}/api/generate",
                 json={"model": model, "prompt": prompt, "stream": True},
@@ -212,7 +211,6 @@ def __set_up_and_run_LLM(vector_db):
         prompt = build_system_prompt(query, sources)
 
         # Get the LLM response (streaming)
-        print("LLM is preparing to respond...")
         for chunk in llm(prompt):
             print(chunk, end="", flush=True)
 

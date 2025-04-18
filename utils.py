@@ -12,7 +12,7 @@ import re
 from typing import Tuple
 
 # Internal imports
-from const import EMBEDDING_MODEL
+from config import EMBEDDING_MODEL
 
 # External imports
 import numpy as np

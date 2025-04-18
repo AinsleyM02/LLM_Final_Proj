@@ -210,6 +210,8 @@ def __set_up_and_run_LLM(vector_db):
         # Build the prompt
         prompt = build_system_prompt(query, sources)
 
+        print(f"Prompt: {prompt}")
+
         # Get the LLM response (streaming)
         for chunk in llm(prompt):
             print(chunk, end="", flush=True)

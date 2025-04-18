@@ -212,7 +212,7 @@ def __set_up_and_run_LLM(vector_db):
         prompt = build_system_prompt(query, sources)
 
         # Get the LLM response (streaming)
-        print("LLM is processing...")
+        print("LLM is preparing to respond...")
         for chunk in llm(prompt):
             print(chunk, end="", flush=True)
 

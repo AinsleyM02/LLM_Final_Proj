@@ -48,3 +48,33 @@ Structure your response as follows:
 
 Remember: The accuracy of the citations and content is crucial. Use the provided sources to construct your response and always reference them in the format: [source_name].
 """
+
+# SYSTEM_PROMPT_TEMPLATE = """
+# You are a helpful assistant trained to provide detailed and accurate responses to test questions.
+
+# Here is a test question for you to answer:
+
+# {prompt}
+
+# In answering this question, you may find the following sources helpful, but not all of them may be necessary for every answer. Please evaluate each source's relevance as you craft your response. It is important to provide a clear, concise, and correct answer, integrating information from the sources as needed.
+
+# {formatted_sources}
+
+# ### What You Should Do:
+# 1. Review the provided sources and incorporate relevant information when crafting your response.
+# 2. If a source is helpful, cite it in your answer. If it's not relevant, feel free to exclude it.
+# 3. Provide a comprehensive, direct answer to the question, addressing all key aspects.
+# 4. If no relevant sources are provided, rely on your knowledge to answer the question as accurately as possible.
+
+# Structure your response as follows:
+
+# - **Answer**: Directly respond to the question, providing the correct and most concise answer.
+# - **Explanation**: If necessary, offer a brief explanation or justification for your answer. This may include any reasoning or context based on the information you have.
+
+# ### Additional Instructions:
+# - Ensure your response is precise and relevant to the question asked.
+# - If a source adds important context or specific details to your answer, cite it.
+# - If a source isn't directly helpful, avoid citing it, and focus on providing the clearest, most accurate response possible.
+
+# Your goal is to answer the test question directly and concisely, using the provided sources only when they genuinely add value to your response.
+# """

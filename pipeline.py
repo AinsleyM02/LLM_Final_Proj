@@ -12,15 +12,15 @@ This should:
 """
 
 # Standard imports
+import sys
+import json
 import argparse
 import shutil
 import requests
-import sys
-from typing import Dict
 from pathlib import Path
 
 # Internal imports
-from const import PATH_TO_DATA
+from const import PATH_TO_DATA, SYSTEM_PROMPT_TEMPLATE
 from data_handler import DataHandler
 from chroma import ChromaDB
 
@@ -119,71 +119,91 @@ def __set_up_local_vector_db(datahandler: DataHandler) -> ChromaDB:
 
     return vector_db
 
+
 def __get_llm():
     """
     Returns a function that sends a prompt to Ollama's local API using the specified model.
-    It checks for the presence of the 'ollama' CLI to ensure the backend is available.
+    Supports streaming output.
     """
 
     # Check if Ollama is installed
     if shutil.which("ollama") is None:
-        print("Ollama is not installed. Please install it from https://ollama.com/download")
+        print(
+            r'Ollama is not installed. Please install it from https://ollama.com/download. If installed, ensure it\'s in your PATH. You can do this with: $env:Path += ";C:\Users\<YourUsername>\AppData\Local\Programs\Ollama\" and restarting your computer.'
+        )
         sys.exit(1)
 
     def llm(prompt: str, model="mistral:instruct", host="http://localhost:11434"):
         try:
-            response = requests.post(
+            with requests.post(
                 f"{host}/api/generate",
-                json={
-                    "model": model,
-                    "prompt": prompt,
-                    "stream": False
-                }
-            )
-            response.raise_for_status()
-            return response.json()["response"].strip()
-
+                json={"model": model, "prompt": prompt, "stream": True},
+                stream=True,
+            ) as response:
+                response.raise_for_status()
+                for line in response.iter_lines(decode_unicode=True):
+                    if line:
+                        data = json.loads(line)
+                        yield data.get("response", "")
         except requests.exceptions.RequestException as e:
             print(f"Error contacting Ollama at {host}: {e}")
-            return "[LLM Error: Could not get a response]"
+            yield "[LLM Error: Could not get a response]"
 
     return llm
 
-# Function to set up and run LLM with vector DB
+
+def build_system_prompt(prompt: str, sources: list[tuple[str, str]]) -> str:
+    formatted_sources = "\n\n".join(f"{name}: {content}" for name, content in sources)
+    return SYSTEM_PROMPT_TEMPLATE.format(
+        prompt=prompt, formatted_sources=formatted_sources
+    )
+
+
 def __set_up_and_run_LLM(vector_db):
     """
-    Function that sets up the LLM.
-    Note vector_db is the instance of ChromaDB that has been set up and is passed in.
-    This function will handle the LLM setup and querying.
+    Function that sets up the LLM and queries a vector DB for context.
     """
-    # We can discuss this once we have the vector DB set up.
-    # Prob worth creating a class? that loads the LLM or downloads it if not already present.
-    # Then it internally can handle querying the vector DB for context and running the LLM on the input.
-    # This can be a while loop that they enter 'q' to quit.
-    
-    # Load the LLM with the function created previousl
     llm = __get_llm()
-    #set system prompt
-    SYSTEM_PROMPT = """You are a medical student. You use reputable retrieved documents to answer questions. Use the sources provided to answer the provided question. 
-    Provide clear and concise answers only using the sources provided.If you do not see the answer in the sources, say "I do not see relevant 
-    information in the sources provided".
-    """
-    response = None  # define this up front
-    # while the user has not entered 'q' to quit, keep asking for input
+    response = None
+
     while True:
         query = input("Enter your question (or type 'q' to quit): ").strip()
-        if query.lower() == 'q':
+        if query.lower() == "q":
             print("Exiting...")
             break
-        # calls the instance of the vector DB to get the context for the question
-        context = vector_db.search(query)
-        prompt = f"{SYSTEM_PROMPT}\n\nSources:\n{context}\n\nQuestion: {query}"
 
-        response = llm(prompt)
-        print(response)
+        # Get relevant source context from vector DB
+        context_results = vector_db.search(query)
+
+        # Ensure context is in list-of-tuples format
+        if isinstance(context_results, dict):
+            sources = [
+                (title.split("_", 1)[1], text)
+                for title, text in context_results.items()
+            ]
+        else:
+            print("Invalid context format from vector DB. Expected list of dicts.")
+            continue
+
+        # Build the prompt
+        prompt = build_system_prompt(query, sources)
+
+        print("Full Prompt: ", prompt)
+
+        # Get the LLM response
+        # Get the LLM response (streaming)
+        print("LLM is processing...")
+        for chunk in llm(prompt):
+            print(chunk, end="", flush=True)
+
+        # Print sources that we pulled from the vector DB
+        print("\nReferences pulled:")
+        for title in context_results.keys():
+            print(f"- {title.split("_", 1)[1]}")
+
+        print("\n")  # new line after streaming completes
 
     return response
-
 
 
 run_LLM(clean_data=clean_data, vectorize_data=vectorize_data)

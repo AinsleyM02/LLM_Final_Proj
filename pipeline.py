@@ -117,7 +117,7 @@ def __set_up_local_vector_db(datahandler: DataHandler) -> ChromaDB:
     return vector_db
 
 
-def __set_up_and_run_LLM(context):
+def __set_up_and_run_LLM(vector_db):
     """
     Function that sets up the LLM.
     """

@@ -9,6 +9,7 @@ Namely:
 
 # Standard imports
 import re
+from typing import Tuple
 
 # Internal imports
 from const import EMBEDDING_MODEL
@@ -26,7 +27,21 @@ def sentence_splitter(text):
     return re.split(r"(?<=[.!?])\s+", text.strip())
 
 
-def embed_text(text: str, max_chunk_size: int = 256) -> np.array:
+def embed_text_no_chunk(text: str) -> np.array:
+    """
+    Function that embeds text without chunking.
+
+    Parameters:
+    - text: str, text to embed
+
+    Returns:
+    - np.array, embedding of the text
+    """
+    # We can use the embedding model to encode the text
+    return embedding_model.encode(text)
+
+
+def embed_text(text: str, max_chunk_size: int = 256) -> Tuple[np.ndarray, list[str]]:
     """
     Function that embeds text by chunking if necessary.
 
@@ -35,7 +50,7 @@ def embed_text(text: str, max_chunk_size: int = 256) -> np.array:
     - max_chunk_size: int, maximum number of tokens per chunk
 
     Returns:
-    - np.array, stacked embeddings of all chunks
+    - Tuple: (np.array of embeddings, list of corresponding chunks)
     """
     sentences = sentence_splitter(text)
     chunks = []  # A list of all chunks
@@ -62,17 +77,4 @@ def embed_text(text: str, max_chunk_size: int = 256) -> np.array:
 
     # Now we have a list of embeddings, let's stack them
     # We can use np.vstack to stack the embeddings
-    return np.vstack(embeddings)
-
-
-def decode_text(embedding: np.array) -> str:
-    """
-    Function that decodes an embedding.
-
-    Parameters:
-    - embedding: np.array, embedding to decode
-
-    Returns:
-    - str, decoded text
-    """
-    return embedding_model.decode(embedding)
+    return np.vstack(embeddings), chunks  # Return the embeddings and the chunks

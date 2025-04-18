@@ -193,8 +193,13 @@ class DataHandler:
             if title == ".gitkeep":
                 continue
 
+            embeddings, chunks = embed_text(text)
+
             # Vectorize the text (assuming embed_text is defined elsewhere)
-            self.vectorized_data[title] = embed_text(text).tolist()
+            self.vectorized_data[title] = {
+                "embeddings": embeddings.tolist(),
+                "texts": chunks,
+            }
 
             current_count += 1  # Increment the count
 
@@ -228,12 +233,13 @@ class DataHandler:
         """
         for file in os.listdir(self.vectorized_data_path):
             if file.endswith(".json"):
+                print(f"Loading {file}...")
                 with open(
                     self.vectorized_data_path / Path(file), "r", encoding="utf-8"
                 ) as f:
                     data = json.load(f)
                     for k, v in data.items():
-                        yield k, np.array(v)
+                        yield k, dict(v)
 
     def __clean_pdf(self, file: str) -> List[Tuple[str, str]]:
         """

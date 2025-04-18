@@ -176,3 +176,6 @@ cleaned_data/*
 !cleaned_data/.gitkeep
 
 vectorized_data_*.json
+
+vector_db/*
+!vector_db/.gitkeep

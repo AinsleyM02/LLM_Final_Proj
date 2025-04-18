@@ -97,7 +97,7 @@ class ChromaDB:
                     chunk = embeddings[i : i + chunk_size]
                     chunk_texts = compressed_texts[i : i + chunk_size]
                     self.collection.add(
-                        ids=[str(uuid.uuid4()) for _ in range(len(embeddings))],
+                        ids=[str(uuid.uuid4()) for _ in range(len(chunk))],
                         embeddings=chunk,
                         metadatas=[
                             {"text": chunk_texts[j], "title": section_name}

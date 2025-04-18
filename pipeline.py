@@ -67,6 +67,10 @@ def run_LLM(clean_data: bool = True, vectorize_data: bool = True):
     # Set up the local vector DB and add data to it
     vector_db = __set_up_local_vector_db(title_vector_dict)
 
+    # To verify this works search and print results
+    context = vector_db.search("Teach me about medullary thyroid cancer")
+    print("Context: ", context)
+
     # Get LLM ready and run it
     __set_up_LLM(context=vector_db)
     __run_LLM()  # Ideally, we take input and output in the terminal.

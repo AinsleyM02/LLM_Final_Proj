@@ -164,8 +164,9 @@ def __set_up_and_run_LLM(vector_db):
     # Load the LLM with the function created previousl
     llm = __get_llm()
     #set system prompt
-    SYSTEM_PROMPT = """You are a medical student. You use reputable retrieved documents to answer questions. Use sources provided to answer the provided question. 
-    Provide clear and concise answers in the format citing the sources you used. If you don't know the answer, say "I don't know".
+    SYSTEM_PROMPT = """You are a medical student. You use reputable retrieved documents to answer questions. Use the sources provided to answer the provided question. 
+    Provide clear and concise answers only using the sources provided.If you do not see the answer in the sources, say "I do not see relevant 
+    information in the sources provided".
     """
     response = None  # define this up front
     # while the user has not entered 'q' to quit, keep asking for input

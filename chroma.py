@@ -19,6 +19,7 @@ import numpy as np
 # Local application imports
 from utils import embed_text_no_chunk
 from const import PATH_TO_VECTOR_DB
+from config import DEFAULT_RESULTS_PER_SEARCH
 from data_handler import DataHandler
 
 
@@ -106,7 +107,9 @@ class ChromaDB:
                         ],
                     )
 
-    def search(self, search_str: str, n_results: int = 5) -> Dict[str, str]:
+    def search(
+        self, search_str: str, n_results: int = DEFAULT_RESULTS_PER_SEARCH
+    ) -> Dict[str, str]:
         """
         Search for a string in the ChromaDB collection.
 

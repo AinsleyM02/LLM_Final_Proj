@@ -19,6 +19,7 @@ from pathlib import Path
 # Internal imports
 from const import PATH_TO_DATA
 from data_handler import DataHandler
+from chroma import ChromaDB
 
 # Create an argument parser
 parser = argparse.ArgumentParser(
@@ -102,20 +103,15 @@ def __traverse_data_pipeline(
     return title_vector_dict
 
 
-def __set_up_local_vector_db(title_vector_dict: Dict[str, str]):
+def __set_up_local_vector_db(datahandler: DataHandler) -> ChromaDB:
     """
     Function that sets up a local vector DB if it doesn't already exist.
     """
-    # This function should set up a local vector DB.
-    # Follow along with these instructions:
-    #   https://qdrant.tech/documentation/quickstart/#
-    print("Setting up local vector DB...")
-    # I wouldn't do this in this funciton instead you might want to make an interface class for working with the vector DB
-    # Do this in another file add functions for:
-    #   1) Setting up the local vector DB
-    #   2) Adding data to the local vector DB
-    #   3) Searching the local vector DB (pass embedding of user query and get the most similar text)
-    pass
+    # Set up the local vector DB and add data to it
+    vector_db = ChromaDB()
+    vector_db.add_data(datahandler)
+
+    return vector_db
 
 
 def __set_up_LLM(context):

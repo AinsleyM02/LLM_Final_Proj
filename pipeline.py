@@ -12,12 +12,16 @@ This should:
 """
 
 # Standard imports
+import json
 import argparse
-from typing import Dict
+import shutil
+import requests
+import subprocess
 from pathlib import Path
 
 # Internal imports
-from const import PATH_TO_DATA
+from const import PATH_TO_DATA, SYSTEM_PROMPT_TEMPLATE
+from config import LLM_MODEL
 from data_handler import DataHandler
 from chroma import ChromaDB
 
@@ -72,7 +76,7 @@ def run_LLM(clean_data: bool = True, vectorize_data: bool = True):
     # print("Context: ", context)
 
     # Get LLM ready and run it
-    __set_up_and_run_LLM(context=vector_db)
+    __set_up_and_run_LLM(vector_db)
 
 
 def __traverse_data_pipeline(
@@ -117,15 +121,109 @@ def __set_up_local_vector_db(datahandler: DataHandler) -> ChromaDB:
     return vector_db
 
 
+def __get_llm():
+    """
+    Returns a function that sends a prompt to Ollama's local API using the specified model.
+    Supports streaming output. Automatically pulls the model if not already downloaded.
+    """
+
+    # Check if Ollama is installed
+    if shutil.which("ollama") is None:
+        raise EnvironmentError(
+            r'Ollama is not installed. Please install it from https://ollama.com/download. If installed, ensure it\'s in your PATH. You can do this with: $env:Path += ";C:\Users\<YourUsername>\AppData\Local\Programs\Ollama\" and restarting your computer.'
+        )
+
+    def ensure_model(model: str):
+        try:
+            # Check if model exists
+            tags = requests.get("http://localhost:11434/api/tags").json()
+            if model not in [m["name"] for m in tags.get("models", [])]:
+                print(f"Model '{model}' not found locally. Pulling with ollama CLI...")
+                subprocess.run(["ollama", "pull", model], check=True)
+        except Exception as e:
+            raise RuntimeError(
+                f"Error downloading model '{model}': {e}\n\nPlease ensure Ollama is running and the model name is correct."
+            )
+
+    def llm(prompt: str, model=LLM_MODEL, host="http://localhost:11434"):
+        ensure_model(model)
+
+        try:
+            print("LLM is preparing it's response...")
+            with requests.post(
+                f"{host}/api/generate",
+                json={"model": model, "prompt": prompt, "stream": True},
+                stream=True,
+            ) as response:
+                response.raise_for_status()
+                for line in response.iter_lines(decode_unicode=True):
+                    if line:
+                        data = json.loads(line)
+                        yield data.get("response", "")
+        except requests.exceptions.RequestException as e:
+            print(f"Error contacting Ollama at {host}: {e}")
+            yield "[LLM Error: Could not get a response]"
+
+    return llm
+
+
+def build_system_prompt(prompt: str, sources: list[tuple[str, str]]) -> str:
+    formatted_sources = "\n\n".join(
+        f"Source {name} says ...{content}..." for name, content in sources
+    )
+    return SYSTEM_PROMPT_TEMPLATE.format(
+        prompt=prompt, formatted_sources=formatted_sources
+    )
+
+
 def __set_up_and_run_LLM(vector_db):
     """
-    Function that sets up the LLM.
+    Function that sets up the LLM and queries a vector DB for context.
     """
-    # We can discuss this once we have the vector DB set up.
-    # Prob worth creating a class? that loads the LLM or downloads it if not already present.
-    # Then it internally can handle querying the vector DB for context and running the LLM on the input.
-    # This can be a while loop that they enter 'q' to quit.
-    pass
+    llm = __get_llm()
+    response = None
+
+    while True:
+        query = input("Enter your question (or type 'q' to quit): ").strip()
+        if query.lower() == "q":
+            print("Exiting...")
+            break
+
+        # Get relevant source context from vector DB
+        context_results = vector_db.search(query)
+
+        for title, text in context_results.items():
+            print(f"Source Name: {title.split('_', 1)[1]}")
+            print(text)
+            print("\n")
+
+        # Ensure context is in list-of-tuples format
+        if isinstance(context_results, dict):
+            sources = [
+                (title.split("_", 1)[1], text)
+                for title, text in context_results.items()
+            ]
+        else:
+            print("Invalid context format from vector DB. Expected list of dicts.")
+            continue
+
+        # Build the prompt
+        prompt = build_system_prompt(query, sources)
+
+        print(f"Prompt: {prompt}")
+
+        # Get the LLM response (streaming)
+        for chunk in llm(prompt):
+            print(chunk, end="", flush=True)
+
+        # Print sources that we pulled from the vector DB
+        print("\n\nReferences pulled:")
+        for title in context_results.keys():
+            print(f"- {title.split("_", 1)[1]}")
+
+        print("\n")  # new line after streaming completes
+
+    return response
 
 
 run_LLM(clean_data=clean_data, vectorize_data=vectorize_data)

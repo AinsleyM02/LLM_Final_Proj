@@ -7,6 +7,7 @@ File that contains a class for:
 
 # Standard library imports
 import gzip
+import uuid
 import base64
 from tqdm import tqdm
 
@@ -83,10 +84,10 @@ class ChromaDB:
 
             if len(embeddings) < 5461:
                 self.collection.add(
-                    ids=[f"{section_name}_{i}" for i in range(len(embeddings))],
+                    ids=[str(uuid.uuid4()) for _ in range(len(embeddings))],
                     embeddings=embeddings,
                     metadatas=[
-                        {"text": compressed_texts[i]}
+                        {"text": compressed_texts[i], "title": section_name}
                         for i in range(len(compressed_texts))
                     ],
                 )
@@ -96,9 +97,12 @@ class ChromaDB:
                     chunk = embeddings[i : i + chunk_size]
                     chunk_texts = compressed_texts[i : i + chunk_size]
                     self.collection.add(
-                        ids=[f"{section_name}_{i + j}" for j in range(len(chunk))],
+                        ids=[str(uuid.uuid4()) for _ in range(len(embeddings))],
                         embeddings=chunk,
-                        metadatas=[{"text": chunk_texts[j]} for j in range(len(chunk))],
+                        metadatas=[
+                            {"text": chunk_texts[j], "title": section_name}
+                            for j in range(len(chunk))
+                        ],
                     )
 
     def search(self, search_str: str, n_results: int = 5) -> list:
@@ -125,8 +129,14 @@ class ChromaDB:
         ids = results["ids"][0]
         metadatas = results["metadatas"][0]
         decompressed_results = {
-            id: self.__decompress_text(metadata["text"])
+            f"{id}_{metadata["title"]}": self.__decompress_text(metadata["text"])
             for id, metadata in zip(ids, metadatas)
         }
 
-        return decompressed_results
+        # Remove duplicates from the results
+        unique_results = {}
+        for id, text in decompressed_results.items():
+            if id not in unique_results:
+                unique_results[id] = text
+
+        return unique_results

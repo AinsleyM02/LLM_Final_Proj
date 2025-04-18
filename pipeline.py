@@ -60,12 +60,12 @@ def run_LLM(clean_data: bool = True, vectorize_data: bool = True):
     """
     Function that runs the LLM.
     """
-    title_vector_dict = __traverse_data_pipeline(
+    datahandler = __traverse_data_pipeline(
         Path(PATH_TO_DATA), clean_data=clean_data, vectorize_data=vectorize_data
     )
 
     # Set up the local vector DB and add data to it
-    vector_db = __set_up_local_vector_db(title_vector_dict)
+    vector_db = __set_up_local_vector_db(datahandler)
 
     # To verify this works search and print results
     context = vector_db.search("Teach me about medullary thyroid cancer")
@@ -80,7 +80,7 @@ def __traverse_data_pipeline(
     data_path: Path = Path(PATH_TO_DATA),
     clean_data: bool = True,
     vectorize_data: bool = True,
-) -> Dict[str, str]:
+) -> DataHandler:
     """
     Function that traverses the data pipeline.
 
@@ -88,7 +88,7 @@ def __traverse_data_pipeline(
     - data_path: str, path to the data
 
     Returns:
-    - title_vector_dict: dict, dictionary of titles and vectors of content
+    - data_handler: DataHandler, the data handler object
     """
     # Load the data
     data_handler = DataHandler(data_path=data_path)
@@ -100,11 +100,11 @@ def __traverse_data_pipeline(
 
     # If we need to vectorize the data then let's do that
     if vectorize_data:
-        title_vector_dict = data_handler.vectorize_data()
+        data_handler.vectorize_data()
     else:
-        title_vector_dict = data_handler.load_vectorized_data()
+        data_handler.load_vectorized_data()
 
-    return title_vector_dict
+    return data_handler
 
 
 def __set_up_local_vector_db(datahandler: DataHandler) -> ChromaDB:

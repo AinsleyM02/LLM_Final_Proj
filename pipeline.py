@@ -218,8 +218,10 @@ def __set_up_and_run_LLM(vector_db):
 
         # Print sources that we pulled from the vector DB
         print("\n\nReferences pulled:")
-        for title in context_results.keys():
-            print(f"- {title.split("_", 1)[1]}")
+        reference_list = [title.split("_", 1)[1] for title in context_results.keys()]
+        references = list(set(reference_list))
+        for ref in references:
+            print(f"- {ref}")
 
         print("\n")  # new line after streaming completes
 

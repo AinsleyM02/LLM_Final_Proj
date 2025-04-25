@@ -3,12 +3,16 @@ message: "If you use this software please request permission and you can cite it
 authors:
   - family-names: Marche
     given-names: Charbel
+    orcid: https://orcid.org/0009-0003-0964-0063
   - family-names: Mclaughlin
     given-names: Ainsley
   - family-names: Turkistani
     given-names: Farah
   - family-names: Lee
     given-names: Kayla
+repository-code: >-
+  https://github.com/Program-Specific-RAG-LLM/LLM_Final_Proj
+url: 'https://github.com/Program-Specific-RAG-LLM/LLM_Final_Proj'
 title: "Local RAG and LLM Pipeline"
 version: 0.0.1
 date-released: 2025-4-25

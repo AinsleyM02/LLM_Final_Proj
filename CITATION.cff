@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software please request permission and you can cite it as below."
+authors:
+  - family-names: Marche
+    given-names: Charbel
+  - family-names: Mclaughlin
+    given-names: Ainsley
+  - family-names: Turkistani
+    given-names: Farah
+  - family-names: Lee
+    given-names: Kayla
+title: "Local RAG and LLM Pipeline"
+version: 0.0.1
+date-released: 2025-4-25

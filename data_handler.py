@@ -25,7 +25,6 @@ from const import PATH_TO_DATA, PATH_TO_CLEANED_DATA, PATH_TO_VECTORIZED_DATA
 # External imports
 import fitz
 import docx2txt
-import numpy as np
 from tqdm import tqdm
 import lxml.etree as et
 from pptx import Presentation

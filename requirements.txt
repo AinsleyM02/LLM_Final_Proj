@@ -6,3 +6,8 @@ numpy # We always import numpy lol
 lxml # This is used to parse the nxml files
 tqdm # This is used to show the progress bar
 chromadb # This is used to store the embeddings and the text data
+
+# Testing imports
+torch # This is used to test the embeddings
+transformers # This is used to test the embeddings
+bert-score # This is used to test the embeddings
